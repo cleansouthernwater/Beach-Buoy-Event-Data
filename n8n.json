@@ -1,0 +1,382 @@
+{
+  "nodes": [
+    {
+      "parameters": {},
+      "name": "Start",
+      "type": "n8n-nodes-base.start",
+      "typeVersion": 1,
+      "position": [
+        50,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "values": {
+          "number": [
+            {
+              "name": "page",
+              "value": 1
+            }
+          ],
+          "string": []
+        },
+        "options": {}
+      },
+      "name": "Set Page Number",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        450,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "amount": "={{Math.floor(Math.random() * 5)+1}}",
+        "unit": "seconds"
+      },
+      "name": "Wait",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [
+        1190,
+        200
+      ],
+      "webhookId": "c4428081-65cc-44a5-b2ae-6fb1cd716c6f"
+    },
+    {
+      "parameters": {
+        "values": {
+          "number": [
+            {
+              "name": "page",
+              "value": "={{$node[\"HTTP\"].json[\"currentPage\"]+1}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Increment Page",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        750,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "headerAuth",
+        "url": "https://www.southernwater.co.uk/gateway/Beachbuoy API/api/v1.0/Spills/GetHistoricSpills",
+        "options": {},
+        "queryParametersUi": {
+          "parameter": [
+            {
+              "name": "page",
+              "value": "={{$json[\"page\"]}}"
+            }
+          ]
+        }
+      },
+      "name": "HTTP",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        650,
+        300
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "2",
+          "name": "Southern Water API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "operation": "append",
+        "sheetId": "={{$node[\"Prepare Sheet\"].parameter[\"sheetId\"]}}",
+        "range": "A:J",
+        "options": {}
+      },
+      "name": "Add to Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 1,
+      "position": [
+        1060,
+        480
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "3",
+          "name": "Google Sheets"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{$node[\"HTTP\"].json[\"currentPage\"]}}",
+              "operation": "smallerEqual",
+              "value2": "={{$json[\"totalPages\"]}}"
+            }
+          ]
+        }
+      },
+      "name": "If last page",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        980,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "var events = [];\nfor (item in items[0].json[\"items\"]) {\n  events.push({json:items[0].json[\"items\"][item]});\n}\n\nreturn events;"
+      },
+      "name": "Extract Events",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        860,
+        470
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "operation": "clear",
+        "sheetId": "",
+        "range": "A2:J"
+      },
+      "name": "Prepare Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 1,
+      "position": [
+        250,
+        300
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "3",
+          "name": "Google Sheets"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 15,
+        "unit": "seconds"
+      },
+      "name": "Wait1",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [
+        1250,
+        400
+      ],
+      "webhookId": "f67c050d-319e-4ecd-8f56-5b52a5789784"
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "file",
+        "owner": "cleansouthernwater",
+        "repository": "Beach-Buoy-Event-Data",
+        "filePath": "={{$binary.data.fileName}}",
+        "binaryData": true,
+        "commitMessage": "=Southern Water Beach Buoy data for {{$binary.data.fileName}}"
+      },
+      "name": "GitHub",
+      "type": "n8n-nodes-base.github",
+      "typeVersion": 1,
+      "position": [
+        1860,
+        400
+      ],
+      "credentials": {
+        "githubOAuth2Api": {
+          "id": "6",
+          "name": "Github: Clean Southern Water"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "sheetId": "={{$node[\"Prepare Sheet\"].parameter[\"sheetId\"]}}",
+        "range": "A:J",
+        "options": {}
+      },
+      "name": "Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 1,
+      "position": [
+        1450,
+        400
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "3",
+          "name": "Google Sheets"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "toFile",
+        "fileFormat": "csv",
+        "options": {
+          "fileName": "={{new Date().getFullYear()+'-'+(new Date().getMonth() < 10 ? '0'+new Date().getMonth() : new Date().getMonth()) + '-' + (new Date().getDay() < 10 ? '0'+new Date().getDay() : new Date().getDay())}}.csv"
+        }
+      },
+      "name": "Spreadsheet File",
+      "type": "n8n-nodes-base.spreadsheetFile",
+      "typeVersion": 1,
+      "position": [
+        1650,
+        400
+      ]
+    }
+  ],
+  "connections": {
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Prepare Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Page Number": {
+      "main": [
+        [
+          {
+            "node": "HTTP",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Increment Page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Increment Page": {
+      "main": [
+        [
+          {
+            "node": "HTTP",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP": {
+      "main": [
+        [
+          {
+            "node": "Extract Events",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "If last page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If last page": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Events": {
+      "main": [
+        [
+          {
+            "node": "Add to Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Sheet": {
+      "main": [
+        [
+          {
+            "node": "Set Page Number",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait1": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "Spreadsheet File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Spreadsheet File": {
+      "main": [
+        [
+          {
+            "node": "GitHub",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
